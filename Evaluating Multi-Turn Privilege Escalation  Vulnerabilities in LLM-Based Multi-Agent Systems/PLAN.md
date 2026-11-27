@@ -1,11 +1,13 @@
 # Kế hoạch paper: Evaluating Multi-Turn Privilege Escalation Vulnerabilities in LLM-Based Multi-Agent Systems
 
 > Hướng: **Systematic** — Systematization of Knowledge (SoK) kết hợp Systematic Literature Review (SLR, theo PRISMA 2020), có một phần **đánh giá có hệ thống (systematic evaluation)** quy mô nhỏ để kiểm chứng taxonomy.
-> Ngày lập: 2026-11-27 · Nguồn khởi điểm: 5 paper trong `docs/`
+> Ngày lập: 2026-11-27 · Cập nhật: 2026-11-27 (thêm 4 paper benchmark P6–P9) · Nguồn khởi điểm: 9 paper trong `docs/`
 
 ---
 
-## 1. Tóm tắt 5 paper nền (seed papers)
+## 1. Tóm tắt 9 paper nền (seed papers)
+
+### 1a. Tấn công / phòng thủ / nghiên cứu thực nghiệm (P1–P5)
 
 | # | Paper | Loại | Ý tưởng cốt lõi | Đánh giá | Khoảng trống liên quan "multi-turn + MAS" |
 |---|---|---|---|---|---|
@@ -15,11 +17,21 @@
 | P4 | **Taming Various Privilege Escalation** (SEAgent, Ji et al., arXiv 2601.11893) | Formal model + Defense (MAC/ABAC) | Định nghĩa privilege escalation = hành động vượt least privilege của ý định user; 5 vector: direct PI, indirect PI, RAG poisoning, untrusted agent, **confused deputy trong MAS**; SEMemory theo dõi ngữ cảnh **multi-round** | InjecAgent, AgentDojo (bảo mật); API-Bank, AWS multi-agent (tiện dụng) | **Multi-round chỉ được đánh giá về utility**, phần MAS bỏ qua labeling/policy → **chưa có đánh giá bảo mật multi-turn trong MAS** |
 | P5 | **Trust Propagation and Structural Containment** (Safin et al., arXiv 2609.17648) | Empirical study, MAS 4 agent (LangGraph) | Memory poisoning & indirect PI qua forged approval; HMAC task-bound token + policy oracle; metric **JBR** (Judgment Bypass Rate) tách "agent bị lừa" khỏi "hành động xảy ra" | 60 task, 3 seed, 1 model (gemma), 13 action type | Một kiến trúc, một model, tấn công "lộ liễu", không adaptive, không multi-turn |
 
+### 1b. Benchmark (P6–P9)
+
+| # | Benchmark | Thiết lập | Quy mô | Kết quả chính | Khoảng trống liên quan "multi-turn + MAS" |
+|---|---|---|---|---|---|
+| P6 | **AgentDojo** (Debenedetti et al., NeurIPS 2024 D&B, arXiv 2406.13352) | Single-agent, tool-use, injection trong tool output; môi trường mở rộng được (task, defense, adaptive attack) | 97 user task, 629 security test case; 4 suite: Workspace, Slack, Banking, Travel | LLM mạnh vẫn trượt nhiều task kể cả khi không bị tấn công; attack phá được một số nhưng không phải mọi security property | Một agent, injection một lượt; là nền của P1, P3, P4 và MultiAgentDojo (P2) |
+| P7 | **InjecAgent** (Zhan et al., ACL Findings 2024, arXiv 2403.02691) | Single-agent, indirect prompt injection; 2 loại ý đồ: *direct harm* và *data exfiltration* | 1.054 test case, 17 user tool, 62 attacker tool, 30 agent | ReAct-GPT-4 bị tấn công thành công 24%; thêm "hacking prompt" thì gần gấp đôi | Tĩnh, một lượt, không có agent khác; được P4 dùng (mở rộng thêm RAG poisoning) |
+| P8 | **ConVerse** (Gomaa, Salem, Abdelnabi, arXiv 2511.05359) | **Agent-to-agent, multi-turn**: assistant của user ↔ external service agent (có thể độc hại); tấn công cài trong hội thoại hợp lý | 3 domain (travel, real estate, insurance), 12 persona, 864 attack (611 privacy, 253 security: upselling, DoS, email fraud); 7 model, judge GPT-5 | Privacy ASR 37–88%, security ASR 2–60%; **model mạnh hơn lộ nhiều hơn**; dữ liệu "related & useful" lộ 90–94%; yêu cầu độc hại thường xuất hiện **muộn** trong hội thoại; assistant không kiểm chứng "authority claim" của agent ngoài | Chỉ 2 agent (1 assistant + 1 external); không có phòng thủ system-level; attack do LLM sinh, không adaptive |
+| P9 | **Adaptive Adversaries / Security Arena** (Jain, Hartmann, Li, arXiv 2607.18063) | **Attacker LLM thích ứng qua nhiều round**, defender fresh-session mỗi round (cross-session search); chạy trên AgentBeats | 21 scenario; ma trận 3×3 attacker×defender = 945 battle; thêm 18.422 battle trong competition (gpt-oss-20b) | **ASR round 1: 0–1% → ASR@15: 7.9–16.8%**; gộp 3 attacker tìm ra 1.7–2.2× input thành công; một đoạn provenance giảm ASR 110/270 → 70/270; defender có memory: ASR 57.4% → 31.5%, nhưng attacker biết defender có memory: 14.8% | **Không có tool/retrieval/thay đổi trạng thái thật** (chỉ chấm output); một defender, không phải MAS; giao thức (history, state) làm thay đổi mạnh kết quả |
+
 **Kết luận gap chung** (luận điểm trung tâm của paper):
-1. Hầu hết đánh giá là **single-turn / single-task injection** (AgentDojo, InjecAgent).
+1. Hầu hết đánh giá là **single-turn / single-task injection** (AgentDojo, InjecAgent). P9 cho thấy bằng số liệu rằng **chấm lượt đầu đánh giá thấp rủi ro khoảng 10 lần** (0–1% → 7.9–16.8%).
 2. Bảo đảm cho từng agent **không tự compose** lên hệ thống (P2), và **không tự kéo dài theo thời gian** (chưa ai chứng minh cho multi-turn).
-3. Metric phân mảnh: ASR, ATR, SUR, PAR, UAR, JBR, GSR, FPR… không thống nhất → khó so sánh.
-4. Chưa có taxonomy hệ thống cho **privilege escalation tích luỹ qua nhiều lượt** (gradual escalation, memory persistence, approval fatigue, delegation chain drift).
+3. Hai benchmark multi-turn hiện có **nằm ở hai phía khác nhau và không giao nhau**: P8 có hội thoại agent↔agent nhưng chỉ 2 agent và không có phòng thủ system-level; P9 có attacker thích ứng nhưng không có tool, không có MAS. **Chưa benchmark nào kết hợp: multi-turn + MAS ≥3 agent + tool có tác động thật + phòng thủ system-level (CaMeL/PFI/SEAgent/policy oracle).**
+4. Metric phân mảnh: ASR, ASR@k, ATR, SUR, PAR, UAR, JBR, GSR, FPR… không thống nhất → khó so sánh. Giao thức đánh giá (fresh vs stateful defender, attacker có history hay không) thay đổi kết quả mạnh (P9) nhưng hiếm khi được báo cáo.
+5. Chưa có taxonomy hệ thống cho **privilege escalation tích luỹ qua nhiều lượt** (gradual escalation, memory persistence, approval fatigue, delegation chain drift, late-stage request).
 
 ---
 
@@ -45,7 +57,7 @@
 ### 3.1 Nguồn dữ liệu
 - arXiv (cs.CR, cs.AI, cs.CL, cs.MA), ACM DL, IEEE Xplore, USENIX, NDSS, Semantic Scholar, DBLP
 - Proceedings: IEEE S&P, USENIX Security, CCS, NDSS, ACL/EMNLP/NAACL, NeurIPS/ICLR/ICML (kể cả workshop an toàn AI)
-- **Snowballing** xuôi/ngược từ 5 seed paper (danh mục tham khảo của P2, P4, P5 rất giàu: AgentDojo, InjecAgent, IsolateGPT, f-secure LLM, Progent, Conseca, AgentArmor, MAESTRO, G-Safeguard, …)
+- **Snowballing** xuôi/ngược từ 9 seed paper (danh mục tham khảo của P2, P4, P5, P8, P9 rất giàu: IsolateGPT, f-secure LLM, Progent, Conseca, AgentArmor, MAESTRO, G-Safeguard; về multi-turn: Crescendo, PAIR, TAP, Multi-turn Human Jailbreaks (MHJ); về MAS: Terrarium, Abdelnabi et al. 2025 (phòng thủ agent-to-agent), AgentBeats; về benchmark: AgentHarm, ToolEmu, WASP, AgentSafetyBench, R-Judge, …). Tất cả cần xác minh khi làm SLR.
 
 ### 3.2 Chuỗi truy vấn (khởi điểm, tinh chỉnh sau pilot)
 ```
@@ -101,13 +113,16 @@ Chạy thêm biến thể không có khối multi-turn để đo tỉ lệ paper
 **Chiều C — Chiều thời gian (đóng góp mới chính):**
 | Mẫu | Mô tả | Ai đã chạm tới |
 |---|---|---|
-| C1 Gradual escalation | Mỗi lượt xin thêm một ít quyền/scope, từng bước hợp lệ | chưa đánh giá trong MAS |
+| C1 Gradual escalation | Mỗi lượt xin thêm một ít quyền/scope, từng bước hợp lệ | Crescendo (chatbot, không phải MAS); P8 (một phần, 2 agent) |
 | C2 Persistent memory implant | Gieo ở lượt t, kích hoạt ở lượt t+k | P5 (memory poisoning, 1 lượt), P4 (SEMemory) |
 | C3 Delegation drift | Ý định gốc bị biến dạng dần qua chuỗi ủy quyền nhiều tầng | P2 (một phần) |
 | C4 Approval fatigue / consent laundering | Lợi dụng bước "hỏi user" lặp lại (PFI, SEAgent "prompt user") | chưa |
 | C5 Context-window displacement | Đẩy system/policy prompt ra khỏi ngữ cảnh qua hội thoại dài | chưa trong MAS |
-| C6 Retry / feedback leakage | Học policy qua lỗi lặp lại (P2 dẫn Garby et al.) | P2 (thảo luận) |
+| C6 Retry / feedback leakage | Học policy qua lỗi lặp lại (P2 dẫn Garby et al.) | P2 (thảo luận), **P9 (attacker học từ phản hồi của defender qua 15 round)** |
 | C7 Token/capability replay xuyên lượt | Dùng lại uỷ quyền cũ cho task mới | P5 (nonce, chưa đo) |
+| C8 Late-stage request / sunk-cost pressure | Xây dựng hợp tác nhiều lượt rồi mới đưa yêu cầu độc hại, lợi dụng áp lực "hoàn thành task" | **P8** (quan sát định tính) |
+| C9 Authority/institutional claim qua hội thoại | Agent ngoài viện dẫn "chính sách", "yêu cầu bắt buộc" không kiểm chứng được | **P8**, P5 (forged approval, 1 lượt), P9 (authority handling) |
+| C10 Cross-session adaptive search | Attacker mở phiên mới mỗi lần, mang theo kinh nghiệm từ các phiên trước | **P9** |
 
 **Chiều D — Điểm thực thi phòng thủ:** model · input · inter-agent channel · tool-call boundary · execution sandbox · audit/observer.
 
@@ -138,17 +153,23 @@ Câu hỏi phân tích: một thuộc tính "per-step safe" có kéo theo "traje
 Quy mô vừa phải, mục tiêu là **kiểm chứng taxonomy**, không phải đề xuất phòng thủ mới.
 
 - **Testbed:** tái sử dụng MultiAgentDojo (P2) và/hoặc pipeline 4-agent kiểu P5 (LangGraph); thêm topology P2P (theo AWS benchmark mở rộng của P4).
-- **Kịch bản:** với mỗi mẫu C1–C7, xây 1–2 kịch bản đa lượt, đặt cạnh phiên bản **single-turn tương đương** (cặp đối chứng).
+  - Mượn **hội thoại agent↔agent** và kịch bản tấn công theo ngữ cảnh của ConVerse (P8), cắm vào MAS ≥3 agent có tool thật.
+  - Mượn **vòng lặp attacker thích ứng** của Security Arena (P9, code công khai) để sinh tấn công đa lượt thay vì dùng payload cố định.
+  - Đóng góp đánh giá: lấp đúng giao điểm còn trống ở gap #3 (multi-turn + MAS + tool thật + phòng thủ system-level).
+- **Kịch bản:** với mỗi mẫu C1–C10, xây 1–2 kịch bản đa lượt, đặt cạnh phiên bản **single-turn tương đương** (cặp đối chứng).
+- **Giao thức phải báo cáo rõ** (bài học từ P9): defender fresh-session hay stateful; attacker có giữ history/feedback không; ngân sách số round; dừng ở lần thành công đầu tiên hay không.
 - **Điều kiện phòng thủ:** none · model-level (system prompt/spotlighting) · CaMeL riêng lẻ · multi-CaMeL · policy oracle/MAC (nếu chạy được mã nguồn công khai của CaMeL, PFI).
 - **Model:** ≥3 họ model, nhiều mức năng lực; ≥3 seed; temperature 0 + ghi log đầy đủ.
 - **Metric thống nhất** (đề xuất trong paper):
   - **ASR / UAR** — hành động trái phép thực sự xảy ra (đo bằng sandbox như P5)
+  - **ASR@k** — tỉ lệ thành công trong k round (P9); báo cáo cả ASR@1 để so với single-turn
   - **JBR** — agent bị lừa dù hành động bị chặn (P5)
   - **Turns-to-Compromise (TTC)** — số lượt tới khi vi phạm *(mới)*
   - **Cumulative Privilege Exceedance** — tổng scope vượt least privilege trên cả trajectory *(mới)*
   - **SUR / utility, FPR/LTC** — chi phí tiện dụng
   - Thống kê: Wilson CI cho tỉ lệ gần 0 (theo P2), t-interval theo seed (theo P5)
-- **Câu hỏi kiểm chứng chính:** Phòng thủ đạt ASR≈0 ở single-turn có giữ được khi chuyển sang multi-turn không?
+  - Với rò rỉ dữ liệu: phân tầng privacy theo P8 (unrelated / related-but-private / related-and-useful)
+- **Câu hỏi kiểm chứng chính:** Phòng thủ đạt ASR≈0 ở single-turn có giữ được khi chuyển sang multi-turn không? P9 đã cho thấy điều này **không** đúng với defender chỉ dựa vào LLM (0–1% → 7.9–16.8%); câu hỏi mở là phòng thủ **deterministic/system-level** (CaMeL, multi-CaMeL, PFI, SEAgent, policy oracle) có giữ được không.
 
 > Nếu thời gian/tài nguyên hạn chế: bỏ phần thực nghiệm, đổi tiêu đề thành "SoK: …", và thay bằng **case study phân tích** (walk-through) cho từng mẫu C1–C7 dựa trên mô hình hình thức của P2/P4.
 
@@ -198,7 +219,8 @@ Venue mục tiêu (cân nhắc): IEEE S&P (SoK track), USENIX Security, EuroS&P 
 
 ## 10. Việc cần làm ngay
 - [ ] Chốt: SoK thuần hay SoK + thực nghiệm (§6)?
-- [ ] Tạo thư viện Zotero, nhập 5 seed paper + toàn bộ reference list của P2, P4, P5
+- [ ] Tạo thư viện Zotero, nhập 9 seed paper + toàn bộ reference list của P2, P4, P5, P8, P9
 - [ ] Viết protocol SLR (§3) thành file riêng
-- [ ] Kiểm tra mã nguồn công khai: CaMeL (`google-research/camel-prompt-injection`), PFI (`compsec-snu/pfi`), MultiAgentDojo/SEAgent (xác minh có công bố không)
+- [ ] Kiểm tra mã nguồn công khai: CaMeL (`google-research/camel-prompt-injection`), PFI (`compsec-snu/pfi`), AgentDojo (`agentdojo.spylab.ai`), InjecAgent (`uiuc-kang-lab/InjecAgent`), ConVerse (`amrgomaaelhady/ConVerse`), Security Arena (`sofasogood/adaptive-adversaries`), MultiAgentDojo/SEAgent (xác minh có công bố không)
+- [ ] Đọc Crescendo, MHJ, Terrarium và Abdelnabi et al. 2025 (đều được P8/P9 trích dẫn) để bổ sung phần multi-turn và phòng thủ agent-to-agent
 - [ ] Tìm người sàng lọc thứ hai (để tính κ)
